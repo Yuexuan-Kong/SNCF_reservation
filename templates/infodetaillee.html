@@ -1,0 +1,13 @@
+<h4>Info détaillé du billet</h4>
+{% for info in info %}
+    <div class="ticket">
+<h5>ID Billet: {{ info[0] }}</h5>
+    <h5>ID Train: {{ info[1] }}</h5>
+    <h5>Départ: {{ info[2] }}</h5>
+    <h5>Prix: {{ info[3] }}</h5>
+    <h5>Gare de départ: {{ info[4] }}</h5>
+        <h5>Gare d'arrivée: {{ info[5] }}</h5>
+    <h5>Ville de départ: {{ info[6] }}</h5>
+    <h5>Temps de Trajet: {{ info[7] }}</h5>
+</div>
+{% endfor %}

@@ -1,3 +1,5 @@
+import json
+
 import mysql.connector,sys
 import datetime
 from mysql.connector import Error
@@ -11,22 +13,21 @@ def renderLoginPage():
     return render_template('login.html')
 
 
-@app.route('/login', methods = ['POST'])
+@app.route('/login' , methods = ['POST'])
 def verifyAndRenderRespective():
 	username = request.form['username']
 	password = request.form['password']
-
+	res = runQuery("SELECT id_client, password FROM Clients")
+	credentials = {}
+	for client in res:
+		credentials[client[0]] = client[1]
 	try:
-		if username == 'cashier' and password == 'cashier':
-
-			res = runQuery('call delete_old()')
-			return render_template('cashier.html')
-
-		elif username == 'manager' and password == 'manager':
-
+		if username == 'manager' and password == 'manager':
 			res = runQuery('call delete_old()')
 			return render_template('manager.html')
-
+		elif credentials[username] == password:
+			res = runQuery('call delete_old()')
+			return render_template('user.html', data = [username])
 		else:
 			return render_template('loginfail.html')
 	except Exception as e:
@@ -34,120 +35,78 @@ def verifyAndRenderRespective():
 		return render_template('loginfail.html')
 
 
-# Routes for cashier
-@app.route('/getMoviesShowingOnDate', methods = ['POST'])
-def moviesOnDate():
+# Routes for user
+@app.route('/getTrainsDate', methods = ['POST'])
+def trainsOnDate():
 	date = request.form['date']
 
-	res = runQuery("SELECT DISTINCT movie_id,movie_name,type FROM movies NATURAL JOIN shows WHERE Date = '"+date+"'")
-
+	#res = runQuery("call find_billets('" + date + "')")
+	res = runQuery("select distinct date(depart), gare_depart, gare_arrive from Billets natural join Trajets where date(depart)='"+date+"'")
+	print(res)
 	if res == []:
-		return '<h4>No Movies Showing</h4>'
+		return '<h4>No Train Today</h4>'
 	else:
-		return render_template('movies.html',movies = res)
+		print(res[0])
+		return render_template('billets.html', trains = res)
 
 
 @app.route('/getTimings', methods = ['POST'])
-def timingsForMovie():
+def timingsForTrain():
 	date = request.form['date']
-	movieID = request.form['movieID']
-	movieType = request.form['type']
+	gare_depart = request.form['gare_depart']
+	gare_arrivee = request.form['gare_arrivee']
 
-	res = runQuery("SELECT time FROM shows WHERE Date='"+date+"' and movie_id = "+movieID+" and type ='"+movieType+"'")
-	
-	list = []
-
-	for i in res:
-		list.append( (i[0], int(i[0]/100), i[0]%100 if i[0]%100 != 0 else '00' ) )
-
-	return render_template('timings.html',timings = list) 
+	res = runQuery("select time(depart), id_trajet, id_billet from Billets natural join Trajets where date(depart)='"+ date + "' and Trajets.gare_depart = '"+ gare_depart + "'  and gare_arrive = '"+ gare_arrivee + "'")
+	return render_template('timings.html',timings = res)
 
 
-@app.route('/getShowID', methods = ['POST'])
-def getShowID():
-	date = request.form['date']
-	movieID = request.form['movieID']
-	movieType = request.form['type']
-	time = request.form['time']
-
-	res = runQuery("SELECT show_id FROM shows WHERE Date='"+date+"' and movie_id = "+movieID+" and type ='"+movieType+"' and time = "+time)
-	return jsonify({"showID" : res[0][0]})
+@app.route('/getBilletID', methods = ['POST'])
+def getBilletID():
+	id_billet = request.form['id_billet']
+	res = runQuery("select id_billet from Voitures group by id_billet having sum(nb_place) >0 and id_billet = '"+id_billet+"'")
+	return jsonify({'available_voiture':res[0][0]})
 
 
 @app.route('/getAvailableSeats', methods = ['POST'])
 def getSeating():
-	showID = request.form['showID']
+	id_billet = request.form['available_voiture']
+	totalFenetre = runQuery("SELECT count(*) FROM Seats WHERE id_billet = '"+ id_billet +"' and fenetre_couloir = 'f' and available = 1")[0]
+	totalCouloir = runQuery("SELECT count(*) FROM Seats WHERE id_billet = '"+ id_billet +"' and fenetre_couloir = 'c' and available = 1")[0]
 
-	res = runQuery("SELECT class,no_of_seats FROM shows NATURAL JOIN halls WHERE show_id = "+showID)
-
-	totalGold = 0
-	totalStandard = 0
-
-	for i in res:
-		if i[0] == 'gold':
-			totalGold = i[1]
-		if i[0] == 'standard':
-			totalStandard = i[1]
-
-	res = runQuery("SELECT seat_no FROM booked_tickets WHERE show_id = "+showID)
-
-	goldSeats = []
-	standardSeats = []
-
-	for i in range(1, totalGold + 1):
-		goldSeats.append([i,''])
-
-	for i in range(1, totalStandard + 1):
-		standardSeats.append([i,''])
-
-	for i in res:
-		if i[0] > 1000:
-			goldSeats[ i[0] % 1000 - 1 ][1] = 'disabled'
-		else:
-			standardSeats[ i[0] - 1 ][1] = 'disabled'
-
-	return render_template('seating.html', goldSeats = goldSeats, standardSeats = standardSeats)
+	return render_template('seating.html', totalFenetre = totalFenetre, totalCouloir = totalCouloir)
 
 
 @app.route('/getPrice', methods = ['POST'])
 def getPriceForClass():
-	showID = request.form['showID']
-	seatClass = request.form['seatClass']
+	id_billet = request.form['billet']
+	seatType = request.form['seatType']
+	username = request.form['username']
 
-	res = runQuery("INSERT INTO halls VALUES(-1,'-1',-1)");
-
-	res = runQuery("DELETE FROM halls WHERE hall_id = -1")
-
-	res = runQuery("SELECT price FROM shows NATURAL JOIN price_listing WHERE show_id = "+showID)
-
-	if res == []:
-		return '<h5>Prices Have Not Been Assigned To This Show, Try Again Later</h5>'
-
+	res = runQuery("select prix from Billets where id_billet = '"+ id_billet +"'")
 	price = int(res[0][0])
-	if seatClass == 'gold':
-		price = price * 1.5
 
-	return '<h5>Ticket Price: ₹ '+str(price)+'</h5>\
+	res = runQuery("select percent from Clients natural join Reductions where id_client = '"+ username +"'")
+	reduction = float(res[0][0])
+
+	price = price*reduction
+
+	return '<h5>Ticket Price: € '+str(price)+'</h5>\
+	<h5>Click Reset Button to Cancel the reservation</h5>\
 	<button onclick="confirmBooking()">Confirm</button>'
 
 
 @app.route('/insertBooking', methods = ['POST'])
 def createBooking():
-	showID = request.form['showID']
-	seatNo = request.form['seatNo']
-	seatClass = request.form['seatClass']
+	id_billet = request.form['id_billet']
+	username = request.form['username']
+	seatType = request.form['seatType']
 
-	if seatClass == 'gold':
-		seatNo = int(seatNo) + 1000
+	ticketNo = str(randint(0, 214748))
+	res = runQuery("select num_seat, num_voiture from Seats where fenetre_couloir='"+seatType+"' and id_billet = '"+id_billet+"' order by rand() limit 1")
 
-	ticketNo = 0
-	res = None
-
-	while res != []:
-		ticketNo = randint(0, 2147483646)
-		res = runQuery("SELECT ticket_no FROM booked_tickets WHERE ticket_no = "+str(ticketNo))
-	
-	res = runQuery("INSERT INTO booked_tickets VALUES("+str(ticketNo)+","+showID+","+str(seatNo)+")")
+	num_seat = res[0][0]
+	num_voiture = res[0][1]
+	res = runQuery("INSERT INTO Booked_tickets VALUES (%s,%s,%s,%s,%s)", params = (ticketNo, username, id_billet, num_seat, num_voiture))
 
 	if res == []:
 		return '<h5>Ticket Successfully Booked</h5>\
@@ -155,240 +114,64 @@ def createBooking():
 
 
 # Routes for manager
-@app.route('/getShowsShowingOnDate', methods = ['POST'])
-def getShowsOnDate():
+@app.route('/getTrainOnDate', methods = ['POST'])
+def getTrainsOnThisDate():
 	date = request.form['date']
 
-	res = runQuery("SELECT show_id,movie_name,type,time FROM shows NATURAL JOIN movies WHERE Date = '"+date+"'")
-	
+	res = runQuery("select id_booked, id_client, num_seat, num_voiture, id_billet, depart, gare_depart, gare_arrive from Booked_tickets natural join Billets natural join Trajets WHERE date(depart) = '"+date+"'")
+
 	if res == []:
-		return '<h4>No Shows Showing</h4>'
+		return '<h4>No Bookings Today</h4>'
 	else:
-		shows = []
-		for i in res:
-			x = i[3] % 100
-			if i[3] % 100 == 0:
-				x = '00'
-			shows.append([ i[0], i[1], i[2], int(i[3] / 100), x ])
-
-		return render_template('shows.html', shows = shows)
+		return render_template('bookedtickets.html', tickets = res)
 
 
-@app.route('/getBookedWithShowID', methods = ['POST'])
+@app.route('/getBookedWithBilletID', methods = ['POST'])
 def getBookedTickets():
-	showID = request.form['showID']
+	id_billet = request.form['id_billet']
 
-	res = runQuery("SELECT ticket_no,seat_no FROM booked_tickets WHERE show_id = "+showID+" order by seat_no")
+	res = runQuery("select id_billet, id_train, depart, prix, gare_depart, gare_arrive, ville_depart, temps from Billets natural join Trajets where id_billet = '"+id_billet+"'")
 
-	if res == []:
-		return '<h5>No Bookings</h5>'
+	return render_template('infodetaillee.html', info=res)
 
-	tickets = []
-	for i in res:
-		if i[1] > 1000:
-			tickets.append([i[0], i[1] - 1000, 'Gold'])
-		else:
-			tickets.append([i[0], i[1], 'Standard'])
 
-	return render_template('bookedtickets.html', tickets = tickets)
+@app.route('/fetchBilletInsertForm', methods = ['GET'])
+def getBilletDetail():
+	return render_template('billetdetails.html')
 
 
-@app.route('/fetchMovieInsertForm', methods = ['GET'])
-def getMovieForm():
-	return render_template('movieform.html')
+@app.route('/insertBilletInfo', methods = ['POST'])
+def insertBillet():
+	id_billet = request.form['id_billet']
+	id_train = request.form['id_train']
+	prix = request.form['prix']
+	g_depart = request.form['g_depart']
+	g_arrivee = request.form['g_arrivee']
+	h_depart = request.form['h_depart']
+	j_depart = request.form['j_depart']
 
+	# find the id of the trajet
+	res = runQuery("select id_trajet from Trajets where gare_depart='"+g_depart+"' and gare_arrive='"+g_arrivee+"'")
+	id_trajet = res[0][0]
 
-@app.route('/insertMovie', methods = ['POST'])
-def insertMovie():
-	movieName = request.form['movieName']
-	movieLen = request.form['movieLen']
-	movieLang = request.form['movieLang']
-	types = request.form['types']
-	startShowing = request.form['startShowing']
-	endShowing = request.form['endShowing']
+	# put date and time of the departure into good format
+	j_h_depart = j_depart + ' ' +h_depart
+	# insert into tables
+	res = runQuery("insert into Billets values (%s,%s,%s,%s,%s)", (id_billet, id_train, id_trajet, j_h_depart, prix))
+	return '<h5>Successful !</h5>'
 
-	res = runQuery('SELECT * FROM movies')
-
-	for i in res:
-		if i[1] == movieName and i[2] == int(movieLen) and i[3] == movieLang \
-		 and i[4].strftime('%Y/%m/%d') == startShowing and i[5].strftime('%Y/%m/%d') == endShowing:
-			return '<h5>The Exact Same Movie Already Exists</h5>'
-
-	movieID = 0
-	res = None
-
-	while res != []:
-		movieID = randint(0, 2147483646)
-		res = runQuery("SELECT movie_id FROM movies WHERE movie_id = "+str(movieID))
-	
-	res = runQuery("INSERT INTO movies VALUES("+str(movieID)+",'"+movieName+"',"+movieLen+\
-		",'"+movieLang+"','"+startShowing+"','"+endShowing+"')")
-
-	if res == []:
-		print("Was able to add movie")
-		subTypes = types.split(' ')
-
-		while len(subTypes) < 3:
-			subTypes.append('NUL')
-
-		res = runQuery("INSERT INTO types VALUES("+str(movieID)+",'"+subTypes[0]+"','"+subTypes[1]+"','"+subTypes[2]+"')")
-
-		if res == []:
-			return '<h5>Movie Successfully Added</h5>\
-			<h6>Movie ID: '+str(movieID)+'</h6>'
-		else:
-			print(res)
-	else:
-		print(res)
-
-	return '<h5>Something Went Wrong</h5>'
-
-
-@app.route('/getValidMovies', methods = ['POST'])
-def validMovies():
-	showDate = request.form['showDate']
-
-	res = runQuery("SELECT movie_id,movie_name,length,language FROM movies WHERE show_start <= '"+showDate+\
-		"' and show_end >= '"+showDate+"'")
-
-	if res == []:
-		return '<h5>No Movies Available for Showing On Selected Date</h5>'
-
-	movies = []
-
-	for i in res:
-		subTypes = runQuery("SELECT * FROM types WHERE movie_id = "+str(i[0]) )
-
-		t = subTypes[0][1]
-
-		if subTypes[0][2] != 'NUL':
-			t = t + ' ' + subTypes[0][2]
-		if subTypes[0][3] != 'NUL':
-			t = t + ' ' + subTypes[0][3]
-
-		movies.append( (i[0],i[1],t,i[2],i[3]) )
-
-	return render_template('validmovies.html', movies = movies)
-
-
-@app.route('/getHallsAvailable', methods = ['POST'])
-def getHalls():
-	movieID = request.form['movieID']
-	showDate = request.form['showDate']
-	showTime = request.form['showTime']
-
-	res = runQuery("SELECT length FROM movies WHERE movie_id = "+movieID)
-
-	movieLen = res[0][0]
-
-	showTime = int(showTime)
-
-	showTime = int(showTime / 100)*60 + (showTime % 100)
-
-	endTime = showTime + movieLen 
-
-	res = runQuery("SELECT hall_id, length, time FROM shows NATURAL JOIN movies WHERE Date = '"+showDate+"'")
-
-	unavailableHalls = set()
-
-	for i in res:
-
-		x = int(i[2] / 100)*60 + (i[2] % 100)
-
-		y = x + i[1]
-
-		if x >= showTime and x <= endTime:
-			unavailableHalls = unavailableHalls.union({i[0]})
-
-		if y >= showTime and y <= endTime:
-			unavailableHalls = unavailableHalls.union({i[0]})
-
-	res = runQuery("SELECT DISTINCT hall_id FROM halls")
-
-	availableHalls = set()
-
-	for i in res:
-
-		availableHalls = availableHalls.union({i[0]})
-
-	availableHalls = availableHalls.difference(unavailableHalls)
-
-	if availableHalls == set():
-
-		return '<h5>No Halls Available On Given Date And Time</h5>'
-
-	return render_template('availablehalls.html', halls = availableHalls)
-	
-
-@app.route('/insertShow', methods = ['POST'])
-def insertShow():
-	hallID = request.form['hallID']
-	movieID = request.form['movieID']
-	movieType = request.form['movieType']
-	showDate = request.form['showDate']
-	showTime = request.form['showTime']
-
-	showID = 0
-	res = None
-
-	while res != []:
-		showID = randint(0, 2147483646)
-		res = runQuery("SELECT show_id FROM shows WHERE show_id = "+str(showID))
-	
-	res = runQuery("INSERT INTO shows VALUES("+str(showID)+","+movieID+","+hallID+\
-		",'"+movieType+"',"+showTime+",'"+showDate+"',"+'NULL'+")")
-
-	print(res)
-
-	if res == []:
-		return '<h5>Show Successfully Scheduled</h5>\
-		<h6>Show ID: '+str(showID)+'</h6>'
-
-	else:
-		print(res)
-	return '<h5>Something Went Wrong</h5>'
-
-
-@app.route('/getPriceList', methods = ['GET'])
-def priceList():
-	res = runQuery("SELECT * FROM price_listing ORDER BY type")
-
-	sortedDays = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
-
-	res = sorted( res, key = lambda x : sortedDays.index(x[2]) )
-
-	return render_template('currentprices.html', prices = res)
-
-
-@app.route('/setNewPrice', methods = ['POST'])
-def setPrice():
-	priceID = request.form['priceID']
-	newPrice = request.form['newPrice']
-
-	res = runQuery("UPDATE price_listing SET price = "+str(newPrice)+" WHERE price_id = "+str(priceID))
-
-	if res == []:
-		return '<h5>Price Successfully Changed</h5>\
-			<h6>Standard: ₹ '+newPrice+'</h6>\
-			<h6>Gold: ₹ '+str( int(int(newPrice) * 1.5) )+'</h6>'
-
-	else:
-		print(res)
-	return '<h5>Something Went Wrong</h5>'
-
-
-def runQuery(query):
+def runQuery(query, params=None):
 	try:
 		db = mysql.connector.connect(
 			host='localhost',
-			database='sncf_reservation',
+			database='my_sncf_reservation',
 			user='root',
 			password='rootpassword')
 
 		if db.is_connected():
 			print("Connected to MySQL, running query: ", query)
 			cursor = db.cursor(buffered = True)
-			cursor.execute(query)
+			cursor.execute(query, params)
 			db.commit()
 			res = None
 			try:
@@ -404,11 +187,6 @@ def runQuery(query):
 
 	finally:
 		db.close()
-
-	print("Couldn't connect to MySQL")
-    #Couldn't connect to MySQL
-	return None
-
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0')

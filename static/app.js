@@ -1,17 +1,13 @@
 var username = null;
 var password = null;
 var date = null;
-var movieID = null;
-var type = null;
-var seatNo = null;
-var seatClass = null;
-var movieTime = null;
-var showID = null;
-var startShowing = null;
-var endShowing = null;
-var showTime = null;
-var showDate = null;
-var priceID = null;
+var gare_depart = null;
+var gare_arrivee = null;
+var seatType = null;
+var billet = null;
+var available_voiture = null;
+var datedepart = null;
+
 function login(){
 	if(username === null){
 		username = $("[name='username']")[0].value;
@@ -36,56 +32,55 @@ function login(){
  				onSet: function( event ) {
  					if ( event.select ) {
  						$('#datepicker-cashier').prop('disabled', true);
- 						getMoviesShowingOnDate(this.get('select', 'yyyy/mm/dd' ));
+ 						getTrainOnDate(this.get('select', 'yyyy/mm/dd' ));
  					}
  				}
 			});
 		}
 	});
 }
-// Functions for cashier
-function getMoviesShowingOnDate(mdate){
+
+// Functions for user
+function getTrainOnDate(mdate){
 	date = mdate;
 	$.ajax({
 		type: 'POST',
-		url: '/getMoviesShowingOnDate',
+		url: '/getTrainsDate',
 		data: {'date' : date},
 		success: function(response){
-			$('#movies-on-date').html(response);
+			$('#trains-on-date').html(response);
 		}
 	});
 }
-function selectMovie(movID, mtype){
-	movieID = movID;
-	type = mtype;
+function selectTrajet(jour, depart, arrivee){
+	date = jour
+	gare_depart = depart
+	gare_arrivee = arrivee
 	$.ajax({
 		type: 'POST',
 		url: '/getTimings',
 		data: {
 			'date' : date,
-			'movieID': movieID,
-			'type' : type
+			'gare_depart': gare_depart,
+			'gare_arrivee' : gare_arrivee
 		},
 		success: function(response){
-			$('#movies-on-date button').prop('disabled', true);
-			$('#timings-for-movie').html(response);
+			$('#trains-on-date button').prop('disabled', true);
+			$('#timings-for-train').html(response);
 		}
 	});
 }
-function selectTiming(mtime){
-	movieTime = mtime;
+function selectTiming(id_billet){
+	billet = id_billet;
 	$.ajax({
 		type: 'POST',
-		url: '/getShowID',
+		url: '/getBilletID',
 		data: {
-			'date' : date,
-			'movieID': movieID,
-			'type' : type,
-			'time' : movieTime
+			'id_billet' : billet
 		},
 		success: function(response){
-			$('#timings-for-movie button').prop('disabled', true);
-			showID = response['showID'];
+			$('#timings-for-train button').prop('disabled', true);
+			available_voiture = response['available_voiture'];
 			getSeats();
 		}
 	});
@@ -94,21 +89,21 @@ function getSeats(){
 	$.ajax({
 		type: 'POST',
 		url: '/getAvailableSeats',
-		data: {'showID' : showID},
+		data: {'available_voiture' : available_voiture},
 		success: function(response){
 			$('#available-seats').html(response);
 		}
 	});
 }
-function selectSeat(no, sclass){
-	seatNo = no;
-	seatClass = sclass;
+function selectSeat(stype){
+	seatType = stype;
 	$.ajax({
 		type: 'POST',
 		url: '/getPrice',
 		data: {
-			'showID' : showID,
-			'seatClass' : seatClass
+			'billet' : billet,
+			'seatType' : seatType,
+			'username' : username
 			},
 		success: function(response){
 			$('#price-and-confirm').html(response);
@@ -120,9 +115,9 @@ function confirmBooking(){
 		type: 'POST',
 		url: '/insertBooking',
 		data: {
-			'showID' : showID,
-			'seatNo' : seatNo,
-			'seatClass' : seatClass
+			'id_billet' : billet,
+			'username' : username,
+			'seatType' : seatType
 			},
 		success: function(response){
 			$('#available-seats button').prop('disabled', true);
@@ -130,6 +125,7 @@ function confirmBooking(){
 		}
 	});
 }
+
 // Functions for manager
 function viewBookedTickets(){
 	$('#options button').prop('disabled', true);
@@ -140,208 +136,75 @@ function viewBookedTickets(){
  				onSet: function( event ) {
  					if ( event.select ) {
  						$('#datepicker-manager-1').prop('disabled', true);
- 						getShowsShowingOnDate(this.get('select', 'yyyy/mm/dd' ));
+ 						getTrainsOnDate(this.get('select', 'yyyy/mm/dd' ));
  					}
  				}
 	});
 }
-function getShowsShowingOnDate(mdate){
+function getTrainsOnDate(mdate){
 	date = mdate;
 	$.ajax({
 		type: 'POST',
-		url: '/getShowsShowingOnDate',
+		url: '/getTrainOnDate',
 		data: {'date' : date},
 		success: function(response){
 			$('#manager-dynamic-2').html(response);
 		}
 	});
 }
-function selectShow(mshowID){
-	showID = mshowID;
+function selectBillet(id_billet){
+	billet = id_billet;
 	$.ajax({
 		type: 'POST',
-		url: '/getBookedWithShowID',
-		data: {'showID' : showID},
+		url: '/getBookedWithBilletID',
+		data: {'id_billet' : billet},
 		success: function(response){
 			$('#manager-dynamic-2 button').prop('disabled', true)
 			$('#manager-dynamic-3').html(response);
 		}
 	});
 }
-function insertMovie(){
+function insertBillet(){
 	$('#options button').prop('disabled', true);
 	$.ajax({
 		type: 'GET',
-		url: '/fetchMovieInsertForm',
+		url: '/fetchBilletInsertForm',
 		success: function(response){
 			$('#manager-dynamic-1').html(response);
-			$('#datepicker-manager-2').pickadate({
+			$('#datePicker-manager-2').pickadate({
 				formatSubmit: 'yyyy/mm/dd',
  				hiddenName: true,
  				onSet: function( event ) {
  					if ( event.select ) {
- 						startShowing = this.get('select', 'yyyy/mm/dd' );
- 					}
- 				}
-			});
-			$('#datepicker-manager-3').pickadate({
-				formatSubmit: 'yyyy/mm/dd',
- 				hiddenName: true,
- 				onSet: function( event ) {
- 					if ( event.select ) {
- 						endShowing = this.get('select', 'yyyy/mm/dd' );
+ 						datedepart = this.get('select', 'yyyy/mm/dd' );
  					}
  				}
 			});
 		}
 	});
 }
-function filledMovieForm(){
-	availTypes = $('[name="movieTypes"]')[0].value.toUpperCase().trim();
-	movieName = $('[name="movieName"]')[0].value;
-	movieLang = $('[name="movieLang"]')[0].value;
-	movieLen = $('[name="movieLen"]')[0].value;
-	types = ($('[name="movieTypes"]')[0].value.toUpperCase().trim()).split(' ');
-	atleastTypes = ['2D', '3D', '4DX'];
-	allTypes = [undefined].concat(atleastTypes);
-	if($('#datepicker-manager-2')[0].value == '' || $('#datepicker-manager-3')[0].value == '' ||
-	movieName == '' || movieLang == '' || movieLen == '' || $('[name="movieTypes"]')[0].value == '')
-		$('#manager-dynamic-2').html('<h5>Please Fill In All Fields</h5>');
-	else if(!( atleastTypes.includes(types[0]) && allTypes.includes(types[1]) && allTypes.includes(types[2])) )
-		$('#manager-dynamic-2').html('<h5>Invalid Format For Movie Types</h5>');
-	else if(! $.isNumeric(movieLen))
-		$('#manager-dynamic-2').html('<h5>Movie Length Needs To Be A Number</h5>');
-	else if(Date.parse(startShowing) > Date.parse(endShowing))
-		$('#manager-dynamic-2').html("<h5>Premiere Date Must Be Before/On Last Date In Theatres</h5>");
-	else{
-		movieLen = parseInt(movieLen, 10);
+function filledBilletForm(){
+	id_billet = $('[name="id_billet"]')[0].value
+	id_train = $('[name="id_train"]')[0].value;
+	prix = $('[name="prix"]')[0].value;
+	g_depart = $('[name="g_depart"]')[0].value;
+	g_arrivee = $('[name="g_arrivee"]')[0].value;
+	h_depart = $('[name="h_depart"]')[0].value;
+
 		$.ajax({
 			type: 'POST',
-			url: '/insertMovie',
+			url: '/insertBilletInfo',
 			data: {
-				'movieName' : movieName,
-				'movieLen' : movieLen,
-				'movieLang' : movieLang,
-				'types' : availTypes,
-				'startShowing' : startShowing,
-				'endShowing' : endShowing
+				'id_billet' : id_billet,
+				'id_train' : id_train,
+				'prix' : prix,
+				'g_depart' : g_depart,
+				'g_arrivee' : g_arrivee,
+				'h_depart' : h_depart,
+				'j_depart' : datedepart,
 			},
 			success: function(response){
 				$('#manager-dynamic-2').html(response);
 			}
 		});
 	}
-}
-function createShow(){
-	$('#options button').prop('disabled', true);
-	$('#manager-dynamic-1').html('<input id="datepicker-manager-3" placeholder="Pick a date"><input id="timepicker-manager-1" placeholder="Pick a time"><button onclick="getValidMovies()">Submit</button>');
-	$('#datepicker-manager-3').pickadate({
-				formatSubmit: 'yyyy/mm/dd',
- 				hiddenName: true,
- 				min: new Date(),
- 				onSet: function( event ) {
- 					if ( event.select ) {
- 						showDate = this.get('select', 'yyyy/mm/dd' );
- 					}
- 				}
-	});
-	$('#timepicker-manager-1').pickatime({
-				formatSubmit: 'HHi',
- 				hiddenName: true,
- 				interval: 15,
- 				min: new Date(2000,1,1,8),
-  				max: new Date(2000,1,1,22),
- 				onSet: function( event ) {
- 					if ( event.select ) {
- 						showTime = parseInt(this.get('select', 'HHi' ), 10);
- 					}
- 				}
-	});
-}
-function getValidMovies(){
-	if($('#timepicker-manager-1')[0].value == '' || $('#datepicker-manager-3')[0].value == ''){
-		$('#manager-dynamic-2').html('<h5>Please Fill In All Fields</h5>');
-		return;
-	}
-	$('#manager-dynamic-1 input,#manager-dynamic-1 button').prop('disabled', true)
-	$.ajax({
-			type: 'POST',
-			url: '/getValidMovies',
-			data: {
-				'showDate' : showDate
-			},
-			success: function(response){
-				$('#manager-dynamic-2').html(response);
-			}
-		});
-}
-function selectShowMovie(movID,types){
-	movieID = movID;
-	$('#manager-dynamic-2 button').prop('disabled', true);
-	$('#manager-dynamic-3').html('<h4>Select Movie Type For Show</h4>');
-	types.split(' ').forEach(function(t){
-		$('#manager-dynamic-3').append('<button onclick="selectShowType('+("'"+t+"'")+')">'+t+'</button>');
-	});
-}
-function selectShowType(t){
-	type = t;
-	$.ajax({
-			type: 'POST',
-			url: '/getHallsAvailable',
-			data: {
-				'showDate' : showDate,
-				'showTime' : showTime,
-				'movieID' : movieID
-			},
-			success: function(response){
-				$('#manager-dynamic-3 button').prop('disabled', true);
-				$('#manager-dynamic-4').html(response);
-			}
-		});
-}
-function selectShowHall(hall){
-	$.ajax({
-			type: 'POST',
-			url: '/insertShow',
-			data: {
-				'hallID' : hall,
-				'movieType' : type,
-				'showDate' : showDate,
-				'showTime' : showTime,
-				'movieID' : movieID
-			},
-			success: function(response){
-				$('#manager-dynamic-4 button').prop('disabled', true);
-				$('#manager-dynamic-5').html(response);
-			}
-		});
-}
-function alterPricing(){
-	$('#options button').prop('disabled', true);
-	$.ajax({
-			type: 'GET',
-			url: '/getPriceList',
-			success: function(response){
-				$('#manager-dynamic-1').html(response);
-			}
-		});
-}
-function alterPrice(mpriceID){
-	priceID = mpriceID;
-	$('#manager-dynamic-1 button').prop('disabled', true);
-	$('#manager-dynamic-2').html('<input type="number" name="new_price" placeholder="New price for Standard ₹"><button onclick="changePrice()">Change</button>');
-}
-function changePrice(){
-	newPrice = $('#manager-dynamic-2 input')[0].value;
-	$.ajax({
-			type: 'POST',
-			url: '/setNewPrice',
-			data: {
-				'priceID' : priceID,
-				'newPrice' : newPrice
-			},
-			success: function(response){
-				$('#manager-dynamic-3').html(response);
-			}
-		});
-}

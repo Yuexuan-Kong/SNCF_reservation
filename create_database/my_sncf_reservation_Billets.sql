@@ -1,0 +1,16 @@
+INSERT INTO my_sncf_reservation.Billets (id_billet, id_train, id_trajet, depart, prix) VALUES (123456, 'train1', 'LM', '2021-12-28 22:09:40', 40);
+INSERT INTO my_sncf_reservation.Billets (id_billet, id_train, id_trajet, depart, prix) VALUES (174948, 'train3', 'PL', '2022-03-11 06:32:00', 47);
+INSERT INTO my_sncf_reservation.Billets (id_billet, id_train, id_trajet, depart, prix) VALUES (234567, 'train2', 'LP', '2021-12-18 11:09:55', 30);
+INSERT INTO my_sncf_reservation.Billets (id_billet, id_train, id_trajet, depart, prix) VALUES (245623, 'train3', 'PM', '2021-12-04 14:10:43', 45);
+INSERT INTO my_sncf_reservation.Billets (id_billet, id_train, id_trajet, depart, prix) VALUES (346231, 'train2', 'LP', '2021-12-08 03:47:05', 33);
+INSERT INTO my_sncf_reservation.Billets (id_billet, id_train, id_trajet, depart, prix) VALUES (346345, 'train3', 'PM', '2021-12-25 12:13:13', 34);
+INSERT INTO my_sncf_reservation.Billets (id_billet, id_train, id_trajet, depart, prix) VALUES (346767, 'train3', 'LP', '2021-12-05 23:06:04', 72);
+INSERT INTO my_sncf_reservation.Billets (id_billet, id_train, id_trajet, depart, prix) VALUES (356578, 'train1', 'LM', '2021-12-06 09:48:53', 56);
+INSERT INTO my_sncf_reservation.Billets (id_billet, id_train, id_trajet, depart, prix) VALUES (474747, 'train1', 'LP', '2022-01-20 12:32:00', 34);
+INSERT INTO my_sncf_reservation.Billets (id_billet, id_train, id_trajet, depart, prix) VALUES (564839, 'train3', 'LP', '2022-04-08 08:07:00', 89);
+INSERT INTO my_sncf_reservation.Billets (id_billet, id_train, id_trajet, depart, prix) VALUES (567356, 'train2', 'PL', '2021-12-19 06:11:33', 45);
+INSERT INTO my_sncf_reservation.Billets (id_billet, id_train, id_trajet, depart, prix) VALUES (584949, 'train1', 'LM', '2021-12-28 16:34:37', 29);
+INSERT INTO my_sncf_reservation.Billets (id_billet, id_train, id_trajet, depart, prix) VALUES (637294, 'train3', 'PL', '2022-03-18 07:53:00', 35);
+INSERT INTO my_sncf_reservation.Billets (id_billet, id_train, id_trajet, depart, prix) VALUES (978673, 'train3', 'PM', '2021-12-10 15:32:16', 27);
+INSERT INTO my_sncf_reservation.Billets (id_billet, id_train, id_trajet, depart, prix) VALUES (979797, 'train2', 'PL', '2022-02-18 01:23:00', 351);
+INSERT INTO my_sncf_reservation.Billets (id_billet, id_train, id_trajet, depart, prix) VALUES (989898, 'train2', 'LP', '2022-01-06 12:44:00', 46);

@@ -1,7 +1,9 @@
-<h4>Tickets Booked For Show</h4>
+<h4>Tickets Booked</h4>
 {% for ticket in tickets %}
 <div class="ticket">
 <h5>Ticket Number: {{ ticket[0] }}</h5>
-<h6>Seat Number: {{ ticket[1] }} / {{ ticket[2] }}</h6>
+    <h5>Client: {{ ticket[1] }}</h5>
+<h5>Seat Number: Voiture {{ ticket[3] }} Seat {{ ticket[2] }}</h5>
+    <button onclick="selectBillet({{ ticket[4] }})">Info Billet : {{ ticket[4] }}</button>
 </div>
 {% endfor %}

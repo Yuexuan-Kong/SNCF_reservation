@@ -1,0 +1,6 @@
+INSERT INTO my_sncf_reservation.Trajets (id_trajet, gare_depart, gare_arrive, ville_depart, temps) VALUES ('LM', 'Gare de Part-Dieu', 'Gare de Saint Charles', 'Lyon', '01:30:00');
+INSERT INTO my_sncf_reservation.Trajets (id_trajet, gare_depart, gare_arrive, ville_depart, temps) VALUES ('LP', 'Gare de Lille', 'Gare de Lyon', 'Lille', '01:14:00');
+INSERT INTO my_sncf_reservation.Trajets (id_trajet, gare_depart, gare_arrive, ville_depart, temps) VALUES ('ML', 'Gare de Saint Charles', 'Gare de Part-Dieu', 'Marseille', '01:30:00');
+INSERT INTO my_sncf_reservation.Trajets (id_trajet, gare_depart, gare_arrive, ville_depart, temps) VALUES ('MP', 'Gare de Saint Charles', 'Gare de Lyon', 'Marseille', '03:30:00');
+INSERT INTO my_sncf_reservation.Trajets (id_trajet, gare_depart, gare_arrive, ville_depart, temps) VALUES ('PL', 'Gare de Lyon', 'Gare de Lille', 'Paris', '01:10:00');
+INSERT INTO my_sncf_reservation.Trajets (id_trajet, gare_depart, gare_arrive, ville_depart, temps) VALUES ('PM', 'Gare de Lyon', 'Gare de Saint Charles', 'Paris', '03:30:00');

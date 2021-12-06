@@ -1,0 +1,4 @@
+<h4>Trains</h4>
+{% for train in trains %}
+<button onclick="selectTrajet('{{ train[0] }}', '{{ train[1] }}', '{{ train[2] }}')"> Départ {{ train[1] }}  Arrivée {{ train[2] }}</button>
+{% endfor %}
